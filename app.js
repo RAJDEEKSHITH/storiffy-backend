@@ -29,6 +29,12 @@ app.get("/", (req,res) => {
     message : "Hello From Storiffy"
   })
 })
+
+app.get("/err", (req,res) => {
+console.log("process Exited with error")
+process.exit(1);
+})
+
 app.use("/directory", checkAuth, directoryRoutes);
 app.use("/file", checkAuth, fileRoutes);
 app.use("/subscriptions", checkAuth, subscriptionRoutes);
