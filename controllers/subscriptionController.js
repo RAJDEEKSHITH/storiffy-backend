@@ -1,0 +1,33 @@
+import Razorpay from "razorpay";
+import Subscription from "../models/subscriptionModel.js";
+
+const razorpayKeyId = process.env.RAZORPAY_TEST_KEY_ID;
+const razorpayKeySecret = process.env.RAZORPAY_TEST_KEY_SECRET
+
+const rzpInstance = new Razorpay({
+  key_id: razorpayKeyId,
+  key_secret: razorpayKeySecret
+});
+
+export const createSubscription = async (req, res, next) => {
+  try {
+    const newSubscription = await rzpInstance.subscriptions.create({
+      plan_id: req.body.planId,
+      total_count: 120,
+      notes: {
+        userId: req.user._id,
+      },
+    });
+
+    const subscription = new Subscription({
+      razorpaySubscriptionId: newSubscription.id,
+      userId: req.user._id,
+    });
+
+    await subscription.save();
+    res.json({ subscriptionId: newSubscription.id });
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
+};

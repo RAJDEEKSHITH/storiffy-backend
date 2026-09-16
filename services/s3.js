@@ -1,0 +1,87 @@
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+const awsProfile = process.env.AWS_PROFILE;
+
+const awsRegion = process.env.AWS_REGION;
+const awsBucket = process.env.AWS_BUCKET;
+const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+const s3Client = new S3Client({ profile: awsProfile ,
+  
+  region : awsRegion,
+  credentials : {
+    accessKeyId : awsAccessKeyId,
+    secretAccessKey : awsSecretAccessKey
+  }
+});
+
+export const createUploadSignedUrl = async ({ key, contentType }) => {
+  const command = new PutObjectCommand({
+    Bucket: awsBucket,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const url = await getSignedUrl(s3Client, command, {
+    expiresIn: 300,
+    signableHeaders: new Set(["content-type"]),
+  });
+
+  return url;
+};
+
+export const createGetSignedUrl = async ({
+  key,
+  download = false,
+  filename,
+}) => {
+  const command = new GetObjectCommand({
+    Bucket: awsBucket,
+    Key: key,
+    ResponseContentDisposition: `${download ? "attachment" : "inline"}; filename=${encodeURIComponent(filename)}`,
+  });
+
+  const url = await getSignedUrl(s3Client, command, {
+    expiresIn: 300,
+  });
+
+  return url;
+};
+
+export const getS3FileMetaData = async (key) => {
+  const command = new HeadObjectCommand({
+    Bucket: awsBucket,
+    Key: key,
+  });
+
+  return await s3Client.send(command);
+};
+
+export const deleteS3File = async (key) => {
+  const command = new DeleteObjectCommand({
+    Bucket: awsBucket,
+    Key: key,
+  });
+
+  return await s3Client.send(command);
+};
+
+export const deleteS3Files = async (keys) => {
+  const command = new DeleteObjectsCommand({
+    Bucket: awsBucket,
+    Delete: {
+      Objects: keys,
+      Quiet: false, // set true to skip individual delete responses
+    },
+  });
+
+  return await s3Client.send(command);
+};
